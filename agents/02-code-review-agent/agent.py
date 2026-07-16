@@ -1,12 +1,12 @@
 """
-Code Review Agent using LangChain.
+Code Review Agent using LangChain + Groq.
 
-Reviews Python code for bugs, security issues, style violations, and
-suggests improvements. Accepts a file path or inline code snippet.
+Reviews Python code for bugs, security issues, style violations,
+performance issues and suggests improvements.
 
 Usage:
-    python agent.py --file path/to/code.py
-    python agent.py --code "def add(a,b): return a+b"
+    python agent.py --file test.py
+    python agent.py --code "print('Hello World')"
 """
 
 import argparse
@@ -14,52 +14,100 @@ import os
 
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 
 load_dotenv()
 
-SYSTEM_PROMPT = """You are an expert code reviewer. Analyze the provided code and return a structured review covering:
+if not os.getenv("GROQ_API_KEY"):
+    raise ValueError("❌ GROQ_API_KEY not found in .env")
 
-1. **Bugs & Correctness** — logic errors, edge cases, exception handling
-2. **Security Issues** — injection risks, secrets exposure, unsafe operations
-3. **Performance** — inefficiencies, unnecessary computation, memory issues
-4. **Code Style** — PEP 8 violations, naming conventions, readability
-5. **Improvements** — refactoring suggestions, better patterns
+SYSTEM_PROMPT = """
+You are an expert software engineer and code reviewer.
 
-Format: Use markdown. Rate overall quality as: 🟢 Good / 🟡 Needs Work / 🔴 Critical Issues."""
+Analyze the provided code and generate a professional review covering:
+
+1. Bugs & Correctness
+2. Security Issues
+3. Performance
+4. Code Style
+5. Best Practices
+6. Refactoring Suggestions
+
+Finally include:
+
+- Overall Rating (1-10)
+- Summary
+- Improved Code (if applicable)
+
+Return everything in Markdown.
+"""
+
+llm = ChatGroq(
+    model="llama-3.3-70b-versatile",
+    temperature=0,
+)
 
 
 def review_code(code: str, language: str = "python") -> str:
-    llm = ChatOpenAI(model="gpt-4o", temperature=0)
+
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
-        HumanMessage(content=f"Review this {language} code:\n\n```{language}\n{code}\n```"),
+        HumanMessage(
+            content=f"Review this {language} code:\n\n```{language}\n{code}\n```"
+        ),
     ]
+
     response = llm.invoke(messages)
+
     return response.content
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Code Review Agent")
+
+    parser = argparse.ArgumentParser(description="AI Code Review Agent")
+
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--file", help="Path to file to review")
-    group.add_argument("--code", help="Inline code snippet to review")
-    parser.add_argument("--language", default="python", help="Programming language (default: python)")
+
+    group.add_argument(
+        "--file",
+        help="Path to the source code file",
+    )
+
+    group.add_argument(
+        "--code",
+        help="Inline source code",
+    )
+
+    parser.add_argument(
+        "--language",
+        default="python",
+        help="Programming language",
+    )
+
     args = parser.parse_args()
 
     if args.file:
-        with open(args.file) as f:
+
+        if not os.path.exists(args.file):
+            print(f"\n❌ File not found: {args.file}")
+            return
+
+        with open(args.file, "r", encoding="utf-8") as f:
             code = f.read()
-        print(f"\n🔍 Reviewing: {args.file}\n")
+
+        print(f"\n🔍 Reviewing file: {args.file}\n")
+
     else:
+
         code = args.code
-        print(f"\n🔍 Reviewing inline code snippet\n")
+
+        print("\n🔍 Reviewing inline code\n")
 
     review = review_code(code, args.language)
 
-    print("=" * 60)
-    print("📋 CODE REVIEW")
-    print("=" * 60)
+    print("=" * 70)
+    print("📋 AI CODE REVIEW")
+    print("=" * 70)
     print(review)
 
 
