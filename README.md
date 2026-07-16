@@ -44,9 +44,9 @@ The primary objective is to master:
 ```text
 ████░░░░░░░░░░░░░░░░░
 
-Completed : 2 / 20 Projects
+Completed : 20 / 20 Projects
 
-Progress : 10%
+Progress : 100%
 ```
 
 ---
