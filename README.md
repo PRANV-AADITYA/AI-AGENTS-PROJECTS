@@ -1,4 +1,4 @@
-# 🤖 AI AGENTS PROJECTS
+AI-AGENTS-PROJECTS
 
 <div align="center">
 
